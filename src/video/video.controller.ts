@@ -10,7 +10,7 @@ import {
   UseInterceptors,
   Delete,
   BadRequestException,
-  ParseUUIDPipe,
+  Query,
 } from '@nestjs/common';
 import { VideoService } from './video.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -19,6 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { VideoQueryDto } from './dto/video-query.dto';
 
 interface RequestWithUser {
   user: {
@@ -30,7 +31,7 @@ interface RequestWithUser {
 
 @Controller('video')
 export class VideoController {
-  constructor(private readonly videoService: VideoService) { }
+  constructor(private readonly videoService: VideoService) {}
 
   @Post('upload')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -44,7 +45,7 @@ export class VideoController {
         callback(null, true);
       },
       limits: {
-        fileSize: 1024 * 1024 * 100, // 100MB limit
+        fileSize: 1024 * 1024 * 500, // 500MB limit for cinema masters
       },
     }),
   )
@@ -59,27 +60,52 @@ export class VideoController {
     return this.videoService.createVideo(file, body, req.user.userId);
   }
 
+  @Get('featured')
+  async getFeatured() {
+    const data = await this.videoService.getFeatured();
+    return {
+      message: 'Success',
+      data,
+    };
+  }
+
+  @Get(':id/related')
+  async getRelated(@Param('id') id: string) {
+    const data = await this.videoService.getRelated(id);
+    return {
+      message: 'Success',
+      data,
+    };
+  }
+
+  @Post(':id/view')
+  async trackView(@Param('id') id: string) {
+    const data = await this.videoService.incrementView(id);
+    return {
+      message: 'View counter updated',
+      data,
+    };
+  }
+
   @Get(':id')
-  async getVideo(@Param('id', ParseUUIDPipe) id: string) {
+  async getVideo(@Param('id') id: string) {
     return this.videoService.findOne(id);
   }
 
   @Get()
-  async getAllVideo() {
-    const data = await this.videoService.findAll();
-    const total = data.length;
-
+  async getAllVideo(@Query() query: VideoQueryDto) {
+    const data = await this.videoService.findAll(query);
     return {
       message: 'Success',
       data,
-      total: total,
+      total: data.length,
     };
   }
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'))
   async deleteVideo(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Req() req: RequestWithUser,
   ) {
     await this.videoService.deleteVideo(id, req.user.userId, req.user.role);

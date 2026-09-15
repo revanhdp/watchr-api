@@ -16,6 +16,17 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  // Update Refresh Token Hash
+  async updateRtHash(userId: string, rt: string) {
+    const hash = await bcrypt.hash(rt, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        hashedRefreshToken: hash,
+      },
+    });
+  }
+
   // Register
   async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -36,7 +47,9 @@ export class AuthService {
       },
     });
 
-    return this.getTokens(newUser.id, newUser.email, newUser.role);
+    const tokens = await this.getTokens(newUser.id, newUser.email, newUser.role);
+    await this.updateRtHash(newUser.id, tokens.refresh_token);
+    return tokens;
   }
 
   // Login
@@ -54,27 +67,45 @@ export class AuthService {
       throw new UnauthorizedException('Email atau Password salah');
     }
 
-    return this.getTokens(user.id, user.email, user.role);
+    const tokens = await this.getTokens(user.id, user.email, user.role);
+    await this.updateRtHash(user.id, tokens.refresh_token);
+    return tokens;
   }
 
   // Logout
   async logout(userId: string) {
+    await this.prisma.user.updateMany({
+      where: {
+        id: userId,
+        hashedRefreshToken: { not: null },
+      },
+      data: {
+        hashedRefreshToken: null,
+      },
+    });
     return { message: 'Logged out successfully' };
   }
 
   // Refresh Tokens
-  async refreshTokens(userId: string, email: string) {
+  async refreshTokens(userId: string, rt: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
 
-    if (!user) {
-      throw new ForbiddenException('User tidak ditemukan');
+    if (!user || !user.hashedRefreshToken) {
+      throw new ForbiddenException('Access Denied');
     }
 
-    return this.getTokens(userId, email, user.role);
+    const rtMatches = await bcrypt.compare(rt, user.hashedRefreshToken);
+    if (!rtMatches) {
+      throw new ForbiddenException('Access Denied');
+    }
+
+    const tokens = await this.getTokens(user.id, user.email, user.role);
+    await this.updateRtHash(user.id, tokens.refresh_token);
+    return tokens;
   }
-  
+
   // Get Tokens
   async getTokens(userId: string, email: string, role: string) {
     const [at, rt] = await Promise.all([
@@ -93,6 +124,7 @@ export class AuthService {
         {
           sub: userId,
           email,
+          role,
         },
         {
           secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret-key-456',

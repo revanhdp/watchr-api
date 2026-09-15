@@ -30,6 +30,8 @@ model User {
   email     String   @unique
   password  String
 
+  hashedRefreshToken String?
+
   role      UserRole @default(USER)
 
   videos    Video[]
@@ -45,6 +47,23 @@ model Video {
 
   title        String
   slug         String   @unique
+  originalTitle String?
+  director     String   @default("Unknown Director")
+  studio       String   @default("Independent")
+  year         String   @default("2024")
+  duration     String   @default("00:00")
+  aspectRatio  String   @default("16:9")
+  audioFormat  String   @default("Stereo")
+  colorGrade   String   @default("Standard Rec.709")
+  colorPalette String[] @default([])
+  curatorQuote String?
+  awards       String[] @default([])
+  mood         String   @default("all")
+  moodLabel    String   @default("Koleksi Umum")
+  backdrop     String   @default("")
+  poster       String?
+  isFeatured   Boolean  @default(false)
+  chapters     Json?    @default("[]")
 
   description  String?
 

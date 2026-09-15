@@ -1,0 +1,17 @@
+-- AlterTable
+ALTER TABLE "Video" ADD COLUMN     "aspectRatio" TEXT NOT NULL DEFAULT '16:9',
+ADD COLUMN     "audioFormat" TEXT NOT NULL DEFAULT 'Stereo',
+ADD COLUMN     "awards" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "backdrop" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "colorGrade" TEXT NOT NULL DEFAULT 'Standard Rec.709',
+ADD COLUMN     "colorPalette" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "curatorQuote" TEXT,
+ADD COLUMN     "director" TEXT NOT NULL DEFAULT 'Unknown Director',
+ADD COLUMN     "duration" TEXT NOT NULL DEFAULT '00:00',
+ADD COLUMN     "isFeatured" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "mood" TEXT NOT NULL DEFAULT 'all',
+ADD COLUMN     "moodLabel" TEXT NOT NULL DEFAULT 'Koleksi Umum',
+ADD COLUMN     "originalTitle" TEXT,
+ADD COLUMN     "poster" TEXT,
+ADD COLUMN     "studio" TEXT NOT NULL DEFAULT 'Independent',
+ADD COLUMN     "year" TEXT NOT NULL DEFAULT '2024';
